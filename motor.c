@@ -25,7 +25,7 @@ int aLastState;
 int pwm_level = 50;
 
 
-rcl_publisher_t publisher;
+rcl_subscription_t subscriber;
 std_msgs__msg__Int32 msg;
 
 
@@ -48,13 +48,12 @@ void command_motor(int speed)
     pwm_set_wrap(slice_num, 255);
     pwm_set_chan_level(slice_num, PWM_CHAN_B, pwm_level);
     pwm_set_enabled(slice_num, true);
-
 }
 
-void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
+void subscription_callback(const void * msgin)
 {
-    rcl_ret_t ret = rcl_publish(&publisher, &msg, NULL);
-    msg.data = pwm_level;
+	const std_msgs__msg__Int32 * msg = (const std_msgs__msg__Int32 *)msgin;
+	printf("Received: %d\n", msg->data);
 }
 
 int main()
@@ -81,14 +80,10 @@ int main()
     gpio_set_function(ENA, GPIO_FUNC_PWM);
     
     
-
-
-
-    rcl_timer_t timer;
     rcl_node_t node;
-    rcl_allocator_t allocator;
+    rcl_allocator_t allocator = rcl_get_default_allocator();
     rclc_support_t support;
-    rclc_executor_t executor;
+    rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
 
     allocator = rcl_get_default_allocator();
 
@@ -107,31 +102,25 @@ int main()
     rclc_support_init(&support, 0, NULL, &allocator);
 
     rclc_node_init_default(&node, "pico_node", "", &support);
-    rclc_publisher_init_default(
-        &publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "joint_state");
 
-    rclc_timer_init_default(
-        &timer,
-        &support,
-        RCL_MS_TO_NS(1),
-        timer_callback);
+    rclc_subscription_init_default(
+		&subscriber,
+		&node,
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+		"/motor_publisher")
 
+    
     rclc_executor_init(&executor, &support.context, 1, &allocator);
-    rclc_executor_add_timer(&executor, &timer);
+    rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA);
 
 
     command_motor(100);    
     gpio_put(LED_PIN, 1);
 
-    msg.data = 0;
-    while (true)
-    {
-        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
-         
-    }
+    rclc_executor_spin(&executor);
+
+	rcl_subscription_fini(&subscriber, &node);
+	rcl_node_fini(&node);
     return 0;
 }
 
