@@ -1,0 +1,13 @@
+# Target labels
+ PioasmBuild
+# Source files and their labels
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/CMakeFiles/PioasmBuild
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/CMakeFiles/PioasmBuild.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/CMakeFiles/PioasmBuild-complete.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-install.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-mkdir.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-download.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-update.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-patch.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-configure.rule
+/home/kshitij/Desktop/Pico_codes/motor_test/build/pico-sdk/src/rp2_common/tinyusb/pioasm/src/PioasmBuild-stamp/PioasmBuild-build.rule
