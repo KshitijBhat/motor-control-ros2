@@ -1,36 +1,35 @@
-#include <stdio.h>
+// 2022 Kshitij Bhat <kshitijmbhat@gmail.com>
 
+#include <stdio.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <std_msgs/msg/int32.h>
 #include <rmw_microros/rmw_microros.h>
-
 #include "pico/stdlib.h"
-#include "pico_uart_transports.h"
 #include "hardware/pwm.h"
+#include "hardware/pio.h"
+#include "pico_uart_transports.h"
+#include "quadrature.pio.h"
 
-
-const uint LED_PIN = 25;
-const uint ENA = 15;
-const uint IN1 = 14;
-const uint IN2 = 13;
-const uint encoderA = 16;
-const uint encoderB = 17;
+#define LED_PIN 25
+#define ENA 15
+#define IN1 14
+#define IN2 13
+#define QUADRATURE_A_PIN 16
+#define QUADRATURE_B_PIN 17
 
 const uint SPEED_FACTOR = 1;
-int encoder_count = 0; 
-int aState;
-int aLastState;  
-int pwm_level = 50;
-
+long encoder_count = 0;  
+int pwm_level = 0;
+PIO pio = pio0;
+uint sm = 0;
 
 rcl_publisher_t publisher;
 rcl_subscription_t subscriber;
 std_msgs__msg__Int32 motor_msg;
 std_msgs__msg__Int32 encoder_msg;
-
 
 void command_motor(int speed)
 {
@@ -54,21 +53,10 @@ void command_motor(int speed)
 }
 
 void counter()
-{
-    aState = gpio_get(encoderA); // Reads the "current" state of the encoderA
-    // If the previous and the current state of the encoderA are different, that means a Pulse has occured
-    if (aState != aLastState){     
-        // If the encoderB state is different to the encoderA state, that means the encoder is rotating clockwise
-        if (gpio_get(encoderB) != aState) { 
-        encoder_count ++;
-        } 
-        else {
-        encoder_count --;
-        }
-        // Serial.print("Position: ");
-        // Serial.println(counter);
-   } 
-   aLastState = aState; // Updates the previous state of the encoderA with the current state
+{   
+    // counter
+    pio_sm_exec_wait_blocking(pio, sm, pio_encode_in(pio_x, 32));
+    encoder_count = pio_sm_get_blocking(pio, sm);
 }
 
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
@@ -113,15 +101,12 @@ int main()
 
     gpio_set_function(ENA, GPIO_FUNC_PWM);
     
-    gpio_init(encoderA);
-    gpio_set_dir(encoderA, GPIO_IN);
-
-    gpio_init(encoderB);
-    gpio_set_dir(encoderB, GPIO_IN);
-
-    aLastState = gpio_get(encoderA);
+    stdio_init_all();
+    PIO pio = pio0;
+    uint offset = pio_add_program(pio, &quadrature_program);
+    uint sm = pio_claim_unused_sm(pio, true);
+    quadrature_program_init(pio, sm, offset, QUADRATURE_A_PIN, QUADRATURE_B_PIN);
    
-
     rcl_allocator_t allocator = rcl_get_default_allocator();
     rclc_support_t support;
     
