@@ -53,7 +53,12 @@ void command_motor(int speed)
 void subscription_callback(const void * msgin)
 {
 	const std_msgs__msg__Int32 * msg = (const std_msgs__msg__Int32 *)msgin;
-	printf("Received: %d\n", msg->data);
+    pwm_level = msg->data;
+        
+    gpio_put(LED_PIN, 1);
+    sleep_ms(1000); 
+    gpio_put(LED_PIN, 0);
+    sleep_ms(1000);
 }
 
 int main()
@@ -107,20 +112,17 @@ int main()
 		&subscriber,
 		&node,
 		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-		"/motor_publisher")
+		"/motor_subscriber");
 
     
     rclc_executor_init(&executor, &support.context, 1, &allocator);
     rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA);
-
-
-    command_motor(100);    
-    gpio_put(LED_PIN, 1);
-
+    command_motor(pwm_level);
     rclc_executor_spin(&executor);
 
 	rcl_subscription_fini(&subscriber, &node);
 	rcl_node_fini(&node);
+    
     return 0;
 }
 
