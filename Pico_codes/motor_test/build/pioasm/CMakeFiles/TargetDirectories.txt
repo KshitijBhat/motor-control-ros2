@@ -1,3 +1,0 @@
-/home/kshitij/Desktop/Pico_codes/motor_test/build/pioasm/CMakeFiles/rebuild_cache.dir
-/home/kshitij/Desktop/Pico_codes/motor_test/build/pioasm/CMakeFiles/edit_cache.dir
-/home/kshitij/Desktop/Pico_codes/motor_test/build/pioasm/CMakeFiles/pioasm.dir
