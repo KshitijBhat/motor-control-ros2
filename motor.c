@@ -43,7 +43,7 @@ void command_motor(int speed)
         gpio_put(IN1, 0);  //stop
         gpio_put(IN2, 0);
     }
-    int pwm_level = (int)speed*SPEED_FACTOR;
+    int pwm_level = (int)abs(speed)*SPEED_FACTOR;
     uint slice_num = pwm_gpio_to_slice_num(ENA);
     pwm_set_wrap(slice_num, 255);
     pwm_set_chan_level(slice_num, PWM_CHAN_B, pwm_level);
