@@ -52,9 +52,9 @@ void command_motor(int speed)
 
 void subscription_callback(const void * msgin)
 {
-	const std_msgs__msg__Int32 * msg = (const std_msgs__msg__Int32 *)msgin;
+    const std_msgs__msg__Int32 * msg = (const std_msgs__msg__Int32 *)msgin;
     pwm_level = msg->data;
-        
+    command_motor(pwm_level);
     gpio_put(LED_PIN, 1);
     sleep_ms(1000); 
     gpio_put(LED_PIN, 0);
@@ -117,7 +117,7 @@ int main()
     
     rclc_executor_init(&executor, &support.context, 1, &allocator);
     rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA);
-    command_motor(pwm_level);
+
     rclc_executor_spin(&executor);
 
 	rcl_subscription_fini(&subscriber, &node);
