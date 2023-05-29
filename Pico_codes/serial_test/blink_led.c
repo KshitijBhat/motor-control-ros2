@@ -14,7 +14,6 @@ int main(){
     //Main Loop 
     while(1){
         //Get User Input
-        printf("Command (1 = on or 0 = off):\n");
         userInput = getchar();
 
         if(userInput == '1'){

@@ -3,12 +3,15 @@
  */
 
 #include <libserial/SerialPort.h>
-
+#include <unistd.h>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 
 constexpr const char* const SERIAL_PORT_2 = "/dev/ttyACM0" ;
+using namespace LibSerial ;
+// Instantiate a SerialPort object.
+SerialPort serial_port ;
 
 /**
  * @brief This example reads the contents of a file and writes the entire 
@@ -16,11 +19,23 @@ constexpr const char* const SERIAL_PORT_2 = "/dev/ttyACM0" ;
  *        example, simply utilize TestFile.txt or another file of your
  *        choosing as a command line argument.
  */
+
+void sendchr(std::string data_byte)
+{
+    // Write the data to the serial port.
+    serial_port.Write(data_byte) ;
+
+    // Wait until the data has actually been transmitted.
+    serial_port.DrainWriteBuffer();
+
+    // Print to the terminal what is being written to the serial port.
+    std::cout << data_byte;
+}
+
 int main()
 {   
-    using namespace LibSerial ;
-    // Instantiate a SerialPort object.
-    SerialPort serial_port ;
+    
+
 
     try
     {
@@ -53,17 +68,14 @@ int main()
     
     // Create a variable to store data from the input file and write to the
     // serial port.
-    std::string data_byte = "0";
-
-    // Write the data to the serial port.
-    serial_port.Write(data_byte) ;
-
-    // Wait until the data has actually been transmitted.
-    serial_port.DrainWriteBuffer() ;
-
-    // Print to the terminal what is being written to the serial port.
-    std::cout << data_byte ;
     
+    sendchr("0");
+    sleep(1);
+    sendchr("1");
+    sleep(1);
+    sendchr("0");
+    sleep(1);
+    sendchr("1");
 
     // Successful program completion.
     std::cout << "The example program successfully completed!" << std::endl ;
