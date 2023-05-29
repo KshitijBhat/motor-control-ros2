@@ -1,5 +1,35 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "pico/stdlib.h"
+#define byte uint8_t
+#define numChars 32
+char receivedChars[numChars];
+
+
+int getMotorCommand()
+{
+    char rc;
+    int motorCommand = 0;
+    rc = getchar();
+    char endMarker = '.';
+    static byte ndx = 0;
+    if (rc != endMarker) 
+    {
+        receivedChars[ndx] = rc;
+        ndx++;
+        if (ndx >= numChars) {
+            ndx = numChars - 1;
+        }
+        gpio_put(25, 1);
+    }
+    else {
+        ndx = 0;
+        gpio_put(25, 0);
+        motorCommand = atoi(receivedChars);
+    }
+    return motorCommand;
+}
 
 int main(){
     //Initialise I/O
@@ -9,25 +39,48 @@ int main(){
     gpio_init(25);
     gpio_set_dir(25, GPIO_OUT);
 
-    char userInput;
-
     //Main Loop 
     while(1){
         //Get User Input
-        userInput = getchar();
-
-        if(userInput == '1'){
-            // Turn On LED
-            gpio_put(25, 1); // Set pin 25 to high
-            printf("LED switched on!\n");
-        }
-        else if(userInput == '0'){
-            // Turn Off LED
-            gpio_put(25, 0); // Set pin 25 to high.
-            printf("LED switched off!\n");
-        }
-        else{
-            printf("Invalid Input!\n");
+        int motorCommand;
+        motorCommand = getMotorCommand();
+        // if(motorCommand == 1234)
+        // {
+        //     gpio_put(25, 0);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 1);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 0);
+        //     sleep_ms(1);
+        //     gpio_put(25, 1);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 0);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 1);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 0);
+        //     sleep_ms(1000);
+        //     gpio_put(25, 1);
+        //     sleep_ms(1000);
+        // }
+        if(motorCommand == 123)
+        {
+            gpio_put(25, 0);
+            sleep_ms(1000);
+            gpio_put(25, 1);
+            sleep_ms(1000);
+            gpio_put(25, 0);
+            sleep_ms(1);
+            gpio_put(25, 1);
+            sleep_ms(1000);
+            gpio_put(25, 0);
+            sleep_ms(1000);
+            gpio_put(25, 1);
+            sleep_ms(1000);
+            gpio_put(25, 0);
+            sleep_ms(1000);
+            gpio_put(25, 1);
+            sleep_ms(1000);
         }
     }
 }

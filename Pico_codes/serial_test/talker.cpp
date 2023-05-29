@@ -32,6 +32,11 @@ void sendchr(std::string data_byte)
     std::cout << data_byte;
 }
 
+void sendIntMsg(int number)
+{
+
+}
+
 int main()
 {   
     
@@ -69,13 +74,10 @@ int main()
     // Create a variable to store data from the input file and write to the
     // serial port.
     
-    sendchr("0");
+    // sendchr("123.");
     sleep(1);
-    sendchr("1");
-    sleep(1);
-    sendchr("0");
-    sleep(1);
-    sendchr("1");
+    sendchr("123.");
+    
 
     // Successful program completion.
     std::cout << "The example program successfully completed!" << std::endl ;
