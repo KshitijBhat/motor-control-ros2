@@ -21,10 +21,23 @@ size_t ms_timeout = 250 ;
  *        choosing as a command line argument.
  */
 
-void readEncoder()
+void sendchr(std::string data_byte)
 {
-    DataBuffer read_buffer ;
+    // Write the data to the serial port.
+    serial_port.Write(data_byte) ;
 
+    // Wait until the data has actually been transmitted.
+    serial_port.DrainWriteBuffer();
+
+    // Print to the terminal what is being written to the serial port.
+    std::cout << data_byte;
+}
+
+int readEncoder()
+{
+    std::string read_buffer ;
+    sendchr("e");
+    int encoder_val;
     try
     {
         // Read as many bytes as are available during the timeout period.
@@ -32,13 +45,9 @@ void readEncoder()
     }
     catch (const ReadTimeout&)
     {
-        for (size_t i = 0 ; i < read_buffer.size() ; i++)
-        {
-            std::cout << read_buffer.at(i) << std::flush ;
-        }
-
-        std::cerr << "The Read() call timed out waiting for additional data." << std::endl ;
+        encoder_val = stoi(read_buffer);
     }
+    return encoder_val;
 }
 
 int main()
@@ -68,16 +77,12 @@ int main()
     
     // Set the number of stop bits.
     serial_port.SetStopBits(StopBits::STOP_BITS_1) ;
-
-    // Read characters from the input file and write them to the serial port. 
-    std::cout << "Writing input file contents to the serial port." << std::endl ;
     
     // Create a variable to store data from the input file and write to the
     // serial port.
     
-    readEncoder();
-    
-    // Successful program completion.
-    std::cout << "The example program successfully completed!" << std::endl ;
+    int enc = readEncoder();
+    std::cout<<enc<<std::endl;
+
     return EXIT_SUCCESS ;
 }
