@@ -75,8 +75,14 @@ int main()
     // serial port.
     
     // sendchr("123.");
-    sleep(1);
-    sendchr("123.");
+
+    sendchr("100.");
+    sleep(5);
+    sendchr("200.");
+    sleep(5);
+    sendchr("100.");
+    sleep(5);
+    sendchr("200.");
     
 
     // Successful program completion.
