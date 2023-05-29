@@ -82,7 +82,7 @@ int main()
     // serial port.
     
     int enc = readEncoder();
-    std::cout<<enc<<std::endl;
+    std::cout<<'\n'<<enc<<std::endl;
 
     return EXIT_SUCCESS ;
 }
