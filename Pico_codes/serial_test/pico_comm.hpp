@@ -1,3 +1,6 @@
+#ifndef PICO_COMM_HPP
+#define PICO_COMM_HPP
+
 #include <libserial/SerialPort.h>
 #include <unistd.h>
 #include <cstdlib>
@@ -95,4 +98,5 @@ class PicoComms{
         size_t ms_timeout = 10 ;
 };
 
+#endif
 
