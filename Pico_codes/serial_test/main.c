@@ -32,19 +32,23 @@ void counter()
 
 void command_motor(int speed)
 {
+    int pwm_level;
     if(speed>0){
         gpio_put(IN1, 0);  //spin forward
         gpio_put(IN2, 1);
+        pwm_level = (int)abs(speed)*SPEED_FACTOR;
     }
     else if(speed<0){
         gpio_put(IN1, 1);  //spin forward
         gpio_put(IN2, 0);
+        pwm_level = (int)abs(speed)*SPEED_FACTOR;
     }
     else{
         gpio_put(IN1, 0);  //stop
         gpio_put(IN2, 0);
+        pwm_level = 0;
     }
-    int pwm_level = (int)abs(speed)*SPEED_FACTOR;
+    
     uint slice_num = pwm_gpio_to_slice_num(ENA);
     pwm_set_wrap(slice_num, 255);
     pwm_set_chan_level(slice_num, PWM_CHAN_B, pwm_level);
