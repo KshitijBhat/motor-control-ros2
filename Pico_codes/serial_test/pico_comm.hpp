@@ -4,11 +4,15 @@
 #include <fstream>
 #include <iostream>
 
+#define PI 3.1416
+#define ENCODER_TICKS_PER_REV 660
+
+
 constexpr const char* const SERIAL_PORT_2 = "/dev/ttyACM0" ;
 using namespace LibSerial ;
 // Instantiate a SerialPort object.
 SerialPort serial_port ;
-size_t ms_timeout = 250 ;
+size_t ms_timeout = 10 ;
 
 void sendchr(std::string data_byte)
 {
@@ -24,14 +28,20 @@ void sendchr(std::string data_byte)
 
 void writeMotor(int number)
 {
+    if(number>255){
+        number = 255;
+    }
+    else if(number<-255){
+        number = -255;
+    }
     std::string string_data = std::to_string(number) + ".";
     sendchr(string_data);
 }
 
-int readEncoder()
+float readEncoder()
 {
     std::string read_buffer ;
-    sendchr("e");
+    sendchr("\r");
     int encoder_val;
     try
     {
@@ -42,7 +52,7 @@ int readEncoder()
     {
         encoder_val = stoi(read_buffer);
     }
-    return encoder_val;
+    return encoder_val*2*PI/ENCODER_TICKS_PER_REV;
 }
 
 int setupSerialComm()

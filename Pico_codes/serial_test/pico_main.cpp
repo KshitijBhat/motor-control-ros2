@@ -3,5 +3,7 @@
 int main()
 {
     setupSerialComm();
-    writeMotor(0);
+    writeMotor(1000);
+    sleep(1);
+    std::cout << "\n" << readEncoder()<<std::endl;
 }

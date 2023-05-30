@@ -62,7 +62,7 @@ int getInput()
     rc = getchar();
     char endMarker = '.';
     static byte ndx = 0;
-    if (rc == 'e')
+    if (rc == '\r')
     {
         counter();
         printf("%d\n",encoder_count);
