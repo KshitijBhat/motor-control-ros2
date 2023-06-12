@@ -25,11 +25,10 @@ char receivedChars[numChars];
 
 long encoder_count1 = 0;  
 long encoder_count2 = 0;  
-int pwm_level = 0;
 PIO pio = pio0;
 uint sm1 = 0;
 uint sm2 = 1;
-int motorCommand = 0;
+
 
 void counter(uint sm1, uint sm2)
 {   
@@ -41,7 +40,32 @@ void counter(uint sm1, uint sm2)
     encoder_count2 = pio_sm_get_blocking(pio, sm2);
 }
 
-void command_motor(int speed)
+void command_motor_1(int speed)
+{
+    int pwm_level;
+    if(speed>0){
+        gpio_put(IN1, 0);  //spin forward
+        gpio_put(IN2, 1);
+        pwm_level = (int)abs(speed);
+    }
+    else if(speed<0){
+        gpio_put(IN1, 1);  //spin forward
+        gpio_put(IN2, 0);
+        pwm_level = (int)abs(speed);
+    }
+    else{
+        gpio_put(IN1, 0);  //stop
+        gpio_put(IN2, 0);
+        pwm_level = 0;
+    }
+    
+    uint slice_num = pwm_gpio_to_slice_num(ENA);
+    pwm_set_wrap(slice_num, 255);
+    pwm_set_chan_level(slice_num, PWM_CHAN_B, pwm_level);
+    pwm_set_enabled(slice_num, true);
+}
+
+void command_motor_2(int speed)
 {
     int pwm_level;
     if(speed>0){
@@ -66,10 +90,9 @@ void command_motor(int speed)
     pwm_set_enabled(slice_num, true);
 }
 
-int getInput()
+void getInput(int *motorCommand1, int *motorCommand2)
 {
     char rc;
-
     rc = getchar();
     char endMarker = '.';
     static byte ndx = 0;
@@ -81,10 +104,14 @@ int getInput()
     else if (rc == endMarker) 
     {
         ndx = 0;
-        gpio_put(25, 0);
-        motorCommand = atoi(receivedChars);
+        // motorCommand = atoi(receivedChars);
         //https://www.techiedelight.com/implement-substring-function-c/
         //https://github.com/joshnewans/diffdrive_arduino/blob/main/src/arduino_comms.cpp
+        char delim[] = " ";
+        char *ptr = strtok(receivedChars, delim);
+        *motorCommand1 = atoi(ptr);
+        ptr = strtok(NULL, delim);
+        *motorCommand2 = atoi(ptr);
     }
     else
     {
@@ -94,8 +121,6 @@ int getInput()
             ndx = numChars - 1;
         }
     }
-    
-    return motorCommand;
 }
 
 int main(){
@@ -122,13 +147,15 @@ int main(){
     quadrature_program_init(pio, sm2, offset, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
 
 
-    int motorCommandspeed;
+    int motorCommandspeed1 = 0;
+    int motorCommandspeed2 = 0;
     //Main Loop 
     while(1){
 
         //Get User Input
-        motorCommandspeed = getInput();
-        command_motor(motorCommandspeed);
+        getInput(&motorCommandspeed1, &motorCommandspeed2);
+        command_motor_1(motorCommandspeed1);
+        command_motor_2(motorCommandspeed2);
         
     }
 }

@@ -21,15 +21,21 @@ class PicoComms{
             serial_port_.DrainWriteBuffer();
         }
 
-        void writeMotor(int number)
+        void writeMotor(int motorCommand1, int motorCommand2)
         {
-            if(number>255){
-                number = 255;
+            if(motorCommand1>255){
+                motorCommand1 = 255;
             }
-            else if(number<-255){
-                number = -255;
+            else if(motorCommand1<-255){
+                motorCommand1 = -255;
             }
-            std::string string_data = std::to_string(number) + ".";
+            if(motorCommand2>255){
+                motorCommand2 = 255;
+            }
+            else if(motorCommand2<-255){
+                motorCommand2 = -255;
+            }
+            std::string string_data = std::to_string(motorCommand1) + " " + std::to_string(motorCommand2) + ".";
             sendchr(string_data);
         }
 
