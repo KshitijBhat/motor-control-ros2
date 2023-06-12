@@ -11,11 +11,11 @@
 #define numChars 32
 char receivedChars[numChars];
 
-// #define ENA 15
-// #define IN1 14
-// #define IN2 13
-// #define QUADRATURE_A_PIN 16
-// #define QUADRATURE_B_PIN 17
+#define ENA 15
+#define IN1 14
+#define IN2 13
+#define QUADRATURE1_A_PIN 16
+#define QUADRATURE1_B_PIN 17
 
 #define ENB 9
 #define IN3 8
@@ -23,17 +23,22 @@ char receivedChars[numChars];
 #define QUADRATURE2_A_PIN 18
 #define QUADRATURE2_B_PIN 19
 
-long encoder_count = 0;  
+long encoder_count1 = 0;  
+long encoder_count2 = 0;  
 int pwm_level = 0;
 PIO pio = pio0;
-uint sm = 0;
+uint sm1 = 0;
+uint sm2 = 1;
 int motorCommand = 0;
 
-void counter()
+void counter(uint sm1, uint sm2)
 {   
     // counter
-    pio_sm_exec_wait_blocking(pio, sm, pio_encode_in(pio_x, 32));
-    encoder_count = pio_sm_get_blocking(pio, sm);
+    pio_sm_exec_wait_blocking(pio, sm1, pio_encode_in(pio_x, 32));
+    encoder_count1 = pio_sm_get_blocking(pio, sm1);
+
+    pio_sm_exec_wait_blocking(pio, sm2, pio_encode_in(pio_x, 32));
+    encoder_count2 = pio_sm_get_blocking(pio, sm2);
 }
 
 void command_motor(int speed)
@@ -70,14 +75,16 @@ int getInput()
     static byte ndx = 0;
     if (rc == '\r')
     {
-        counter();
-        printf("%d\n",encoder_count);
+        counter(sm1, sm2);
+        printf("%d\t%d\n",encoder_count1, encoder_count2);
     }
     else if (rc == endMarker) 
     {
         ndx = 0;
         gpio_put(25, 0);
         motorCommand = atoi(receivedChars);
+        //https://www.techiedelight.com/implement-substring-function-c/
+        //https://github.com/joshnewans/diffdrive_arduino/blob/main/src/arduino_comms.cpp
     }
     else
     {
@@ -95,6 +102,12 @@ int main(){
     //Initialise I/O
     stdio_init_all(); 
 
+    gpio_init(IN1);
+    gpio_set_dir(IN1, GPIO_OUT);
+    gpio_init(IN2);
+    gpio_set_dir(IN2, GPIO_OUT);
+    gpio_set_function(ENA, GPIO_FUNC_PWM);
+
     gpio_init(IN3);
     gpio_set_dir(IN3, GPIO_OUT);
     gpio_init(IN4);
@@ -103,12 +116,13 @@ int main(){
 
     PIO pio = pio0;
     uint offset = pio_add_program(pio, &quadrature_program);
-    uint sm = pio_claim_unused_sm(pio, true);
-    quadrature_program_init(pio, sm, offset, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
+    // uint sm1 = pio_claim_unused_sm(pio, true);
+    // uint sm2 = pio_claim_unused_sm(pio, true);
+    quadrature_program_init(pio, sm1, offset, QUADRATURE1_A_PIN, QUADRATURE1_B_PIN);
+    quadrature_program_init(pio, sm2, offset, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
 
 
     int motorCommandspeed;
-    char ping;
     //Main Loop 
     while(1){
 
