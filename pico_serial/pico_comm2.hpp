@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <chrono>
 
 #define PI 3.1416
 #define ENCODER_TICKS_PER_REV 660
@@ -55,6 +56,18 @@ class PicoComms{
             }
         }
 
+        void readDrivingEncoderVelocity(float &velocity)
+        {
+            auto new_time = std::chrono::system_clock::now();
+            std::chrono::duration<float> diff = new_time - time_;
+            float deltaSeconds = diff.count();
+            time_ = new_time;
+            float pos_now, _;
+            readEncoder(pos_now, _);
+            velocity = (pos_now - pos_prev) / deltaSeconds;
+            pos_prev = pos_now;
+        }
+
         void controlPosition(float targetPosition)
         {
             //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
@@ -83,12 +96,47 @@ class PicoComms{
                 Command = -70;
             }
             
-
             // Update prev_error
             prev_error = error;
+
             std::cout << error << " "<< int(Command)<<std::endl;
-            writeMotor(int(Command), 0);
+            writeMotor( int(Command), 0);
         }
+
+        // void controlVelocity(float targetVelocity)
+        // {
+        //     //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
+        //     float velocity;
+        //     readDrivingEncoderVelocity(velocity);
+        //     // Compute the error encoder_s is the current position
+        //     float verror = targetVelocity - velocity;
+
+        //     // Integrate the error
+        //     verrorIntegral += verror;
+
+        //     // Approximate the rate of change of the error
+        //     float verrorDerivative = (verror - vprev_error);
+
+        //     // Clamp the integrated error (start with Imax = max_duty_cycle/2)
+        //     if (verrorIntegral>vImax) errorIntegral=vImax;
+        //     if (verrorIntegral<(-vImax)) errorIntegral=-vImax;
+
+        //     float Command;
+
+        //     Command = vKp*verror + vKi*verrorIntegral + vKd*verrorDerivative;
+        //     if (Command<60 && Command >0){
+        //         Command = 60;
+        //     }
+        //     if (Command>-60 && Command <0){
+        //         Command = -60;
+        //     }
+            
+        //     // Update prev_error
+        //     vprev_error = verror;
+
+        //     std::cout << velocity << " "<< verror << " "<< int(Command)<<std::endl;
+        //     writeMotor(int(Command), 0);
+        // }
 
         int connect(const std::string &serial_device)
         {
@@ -134,12 +182,22 @@ class PicoComms{
         LibSerial::SerialPort serial_port_ ;
         size_t ms_timeout = 10 ;
         // PID Params
-        float Kp = 100;
+        float Kp = 150;
         float Ki = 0.0;
         float Kd = 0.0;
         float Imax = 128;
         float errorIntegral;
         float prev_error;
+        float pos_prev = 0;
+
+        float vKp = 25;
+        float vKi = 0.0;
+        float vKd = 0.0;
+        float vImax = 128;
+        float verrorIntegral;
+        float vprev_error;
+        std::chrono::time_point<std::chrono::system_clock> time_ = std::chrono::system_clock::now();
+        
 };
 
 #endif
