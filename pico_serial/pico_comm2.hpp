@@ -23,26 +23,26 @@ class PicoComms{
 
         void writeMotor(int motorCommand1, int motorCommand2)
         {
-            if(motorCommand1>255){
-                motorCommand1 = 255;
-            }
-            else if(motorCommand1<-255){
-                motorCommand1 = -255;
-            }
-            if(motorCommand2>255){
-                motorCommand2 = 255;
-            }
-            else if(motorCommand2<-255){
-                motorCommand2 = -255;
-            }
             std::string string_data = std::to_string(motorCommand1) + " " + std::to_string(motorCommand2) + ".";
+            sendchr(string_data);
+        }
+
+        void giveTargets(int steerPos, int driveVel)
+        {
+            std::string string_data = std::to_string(steerPos) + " " + std::to_string(driveVel) + ".";
+            sendchr(string_data);
+        }
+
+        void setPID(double Kp, double Ki, double Kd)
+        {
+            std::string string_data = "\r" + std::to_string(Kp) + " " + std::to_string(Ki)+ " " + std::to_string(Kd) + ";";
             sendchr(string_data);
         }
 
         void readEncoder(float &encoder_val1, float &encoder_val2)
         {
             std::string read_buffer ;
-            sendchr("\r");
+            sendchr("\t");
             int encoder_val;
             try
             {
@@ -51,7 +51,6 @@ class PicoComms{
             }
             catch (const LibSerial::ReadTimeout&)
             {
-                encoder_val = stoi(read_buffer);
                 std::string delimiter = "\t";
                 size_t del_pos = read_buffer.find(delimiter);
                 std::string token_1 = read_buffer.substr(0, del_pos);
