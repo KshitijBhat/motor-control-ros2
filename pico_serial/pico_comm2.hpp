@@ -27,23 +27,17 @@ class PicoComms{
             sendchr(string_data);
         }
 
-        void giveTargets(int steerPos, int driveVel)
+        void setPID(double setKp, double setKi, double setKd)
         {
-            std::string string_data = std::to_string(steerPos) + " " + std::to_string(driveVel) + ".";
-            sendchr(string_data);
-        }
-
-        void setPID(double Kp, double Ki, double Kd)
-        {
-            std::string string_data = "\r" + std::to_string(Kp) + " " + std::to_string(Ki)+ " " + std::to_string(Kd) + ";";
-            sendchr(string_data);
+            Kp = setKp;
+            Ki = setKi;
+            Kd = setKd;
         }
 
         void readEncoder(float &encoder_val1, float &encoder_val2)
         {
             std::string read_buffer ;
-            sendchr("\t");
-            int encoder_val;
+            sendchr("\r");
             try
             {
                 // Read as many bytes as are available during the timeout period.
@@ -59,6 +53,41 @@ class PicoComms{
                 encoder_val1 = std::atoi(token_1.c_str())*2*PI/ENCODER_TICKS_PER_REV;
                 encoder_val2 = std::atoi(token_2.c_str())*2*PI/ENCODER_TICKS_PER_REV;
             }
+        }
+
+        void controlPosition(float targetPosition)
+        {
+            //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
+            float encoder_s, encoder_d;
+            readEncoder(encoder_s, encoder_d);
+            // Compute the error encoder_s is the current position
+            float error = targetPosition - encoder_s;
+
+            // Integrate the error
+            errorIntegral += error;
+
+            // Approximate the rate of change of the error
+            float errorDerivative = (error - prev_error);
+
+            // Clamp the integrated error (start with Imax = max_duty_cycle/2)
+            if (errorIntegral>Imax) errorIntegral=Imax;
+            if (errorIntegral<(-Imax)) errorIntegral=-Imax;
+
+            float Command;
+
+            Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
+            if (Command<70 && Command >0){
+                Command = 70;
+            }
+            if (Command>-70 && Command <0){
+                Command = -70;
+            }
+            
+
+            // Update prev_error
+            prev_error = error;
+            std::cout << error << " "<< int(Command)<<std::endl;
+            writeMotor(int(Command), 0);
         }
 
         int connect(const std::string &serial_device)
@@ -104,6 +133,13 @@ class PicoComms{
     private:
         LibSerial::SerialPort serial_port_ ;
         size_t ms_timeout = 10 ;
+        // PID Params
+        float Kp = 100;
+        float Ki = 0.0;
+        float Kd = 0.0;
+        float Imax = 128;
+        float errorIntegral;
+        float prev_error;
 };
 
 #endif

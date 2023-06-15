@@ -23,21 +23,11 @@ char receivedChars[numChars];
 #define QUADRATURE2_A_PIN 18
 #define QUADRATURE2_B_PIN 19
 
-#define Imax 128
-
-long encoder_count_d = 0;  
 long encoder_count_s = 0;  
+long encoder_count_d = 0;  
 PIO pio = pio0;
 uint sm1 = 0;
 uint sm2 = 1;
-
-// PID Params
-double Kp = 0.5;
-double Ki = 0.0;
-double Kd = 0.0;
-long errorIntegral;
-long prev_error;
-bool setpid = false;
 
 
 void counter(uint sm1, uint sm2)
@@ -112,60 +102,8 @@ void command_driving_motor(int speed)
     pwm_set_enabled(slice_num, true);
 }
 
-void getTargets(int *steerPosition, int *driveVelocity)
-{
-    char rc;
-    rc = getchar();
-    char endMarker = '.';
-    static byte ndx = 0;
-    static byte pidx = 0;
-    if (rc == '\t')
-    {
-        counter(sm1, sm2);
-        printf("%d\t%d\n",encoder_count_s, encoder_count_d);
-    }
-    if (rc == '\r')
-    {
-        setpid = true;
-    }
-    if (rc == endMarker && !setpid) 
-    {
-        ndx = 0;
-        char delim[] = " ";
-        char *ptr = strtok(receivedChars, delim);
-        *steerPosition = atoi(ptr);
-        ptr = strtok(NULL, delim);
-        *driveVelocity = atoi(ptr);
-    }
-    if (rc != endMarker && !setpid)
-    {
-        receivedChars[ndx] = rc;
-        ndx++;
-        if (ndx >= numChars) {
-            ndx = numChars - 1;
-        }
-    }
-    if (setpid && rc != ';'){
-        receivedChars[pidx] = rc;
-        pidx++;
-        if (pidx >= numChars) {
-            pidx = numChars - 1;
-        }
-    }
-    if (setpid && rc == ';'){
-        pidx = 0;
-        setpid = false;
-        char delim[] = " ";
-        char *ptr = strtok(receivedChars, delim);
-        Kp = atof(ptr);
-        ptr = strtok(NULL, delim);
-        Ki = atof(ptr); 
-        ptr = strtok(NULL, delim);
-        Kd = atof(ptr);       
-    }
-}
 
-void getInput(int *steerPosition, int *driveVelocity)
+void getInput(int *steerCommand, int *driveCommand)
 {
     char rc;
     rc = getchar();
@@ -181,9 +119,9 @@ void getInput(int *steerPosition, int *driveVelocity)
         ndx = 0;
         char delim[] = " ";
         char *ptr = strtok(receivedChars, delim);
-        *steerPosition = atoi(ptr);
+        *steerCommand = atoi(ptr);
         ptr = strtok(NULL, delim);
-        *driveVelocity = atoi(ptr);
+        *driveCommand = atoi(ptr);
     }
     else
     {
@@ -193,34 +131,6 @@ void getInput(int *steerPosition, int *driveVelocity)
             ndx = numChars - 1;
         }
     }
-}
-
-void controlPosition(double targetPosition)
-{
-    //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
-    
-    counter(sm1, sm2);
-    // Compute the error encoder_s is the current position
-    int error = targetPosition - encoder_count_s;
-
-    // Integrate the error
-    errorIntegral += error;
-
-    // Approximate the rate of change of the error
-    int errorDerivative = (error - prev_error);
-
-    // Clamp the integrated error (start with Imax = max_duty_cycle/2)
-    if (errorIntegral>Imax) errorIntegral=Imax;
-    if (errorIntegral<(-Imax)) errorIntegral=-Imax;
-
-    double Command;
-
-    Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
-
-    // Update prev_error
-    prev_error = error;
-
-    command_steering_motor((int)Command);
 }
 
 int main(){
@@ -247,22 +157,15 @@ int main(){
     quadrature_program_init(pio, sm2, offset, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
 
 
-    int steerPos = 0;
-    int driveVel = 0;
+    int steerCommand = 0;
+    int driveCommand = 0;
     //Main Loop 
     while(1){
 
-        // //Get User Input
-        // getInput(&motorCommandspeed1, &motorCommandspeed2);
+        //Get User Input
+        getInput(&steerCommand, &driveCommand);
 
-        //Get Targets
-        getTargets(&steerPos, &driveVel);
-        controlPosition(steerPos);
-
-
-        // command_steering_motor(motorCommandspeed1);
-        // command_driving_motor(motorCommandspeed2);
-
-        
+        command_steering_motor(steerCommand);
+        command_driving_motor(driveCommand);        
     }
 }
