@@ -190,7 +190,7 @@ class PicoComms{
         float pos_prev = 0;
 
         float vKp = 7;
-        float vKi = 0.20;
+        float vKi = 0.3;
         float vKd = 0.0;
         float vImax = 128;
         float verrorIntegral;
