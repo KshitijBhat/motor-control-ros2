@@ -30,7 +30,7 @@ uint sm1 = 0;
 uint sm2 = 1;
 
 
-void counter(uint sm1, uint sm2)
+void counter()
 {   
     // counter
     pio_sm_exec_wait_blocking(pio, sm1, pio_encode_in(pio_x, 32));
@@ -111,7 +111,7 @@ void getInput(int *steerCommand, int *driveCommand)
     static byte ndx = 0;
     if (rc == '\r')
     {
-        counter(sm1, sm2);
+        counter();
         printf("%d\t%d\n",encoder_count_s, encoder_count_d);
     }
     else if (rc == endMarker) 
