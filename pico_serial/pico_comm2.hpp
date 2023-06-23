@@ -131,10 +131,76 @@ class PicoComms{
             
             
             // Update prev_error
-            // vprev_error = verror;
+            vprev_error = verror;
 
             std::cout << vfilt << " "<< verror << " "<< int(vCommand)<<std::endl;
             writeMotor(0, int(vCommand));
+        }
+
+        void controlLeg(float targetPosition, float targetVelocity)
+        {
+            // Control Position ________________________________________
+
+            //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
+            float encoder_s, encoder_d;
+            readEncoder(encoder_s, encoder_d);
+            // Compute the error encoder_s is the current position
+            float error = targetPosition - encoder_s;
+
+            // Integrate the error
+            errorIntegral += error;
+
+            // Approximate the rate of change of the error
+            float errorDerivative = (error - prev_error);
+
+            // Clamp the integrated error (start with Imax = max_duty_cycle/2)
+            if (errorIntegral>Imax) errorIntegral=Imax;
+            if (errorIntegral<(-Imax)) errorIntegral=-Imax;
+
+            float Command;
+
+            Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
+            if (Command<70 && Command >0){
+                Command = 70;
+            }
+            if (Command>-70 && Command <0){
+                Command = -70;
+            }
+            
+            // Update prev_error
+            prev_error = error;
+
+            // Control Velocity ________________________________________
+
+            float velocity;
+            readDrivingEncoderVelocity(velocity);
+
+              // Low-pass filter (25 Hz cutoff) https://github.com/curiores/ArduinoTutorials/blob/main/SpeedControl/SpeedControl/SpeedControl.ino
+            vfilt = 0.95*vfilt + 0.05*velocity;
+            // vfilt = 0.854*vfilt + 0.0728*velocity + 0.0728*vprev;
+            vprev = velocity;
+            // Compute the error encoder_s is the current position
+            float verror = targetVelocity - vfilt;
+
+            // Integrate the error
+            verrorIntegral += verror;
+
+            // Approximate the rate of change of the error
+            float verrorDerivative = (verror - vprev_error);
+
+            // Clamp the integrated error (start with Imax = max_duty_cycle/2)
+            if (verrorIntegral>vImax) errorIntegral=vImax;
+            if (verrorIntegral<(-vImax)) errorIntegral=-vImax;
+
+            
+            float vCommand;
+            vCommand = vKp*verror + vKi*verrorIntegral + vKd*verrorDerivative;
+            
+            
+            // Update prev_error
+            vprev_error = verror;
+
+            writeMotor(int(Command), int(vCommand));
         }
 
         int connect(const std::string &serial_device)
@@ -189,13 +255,13 @@ class PicoComms{
         float prev_error;
         float pos_prev = 0;
 
-        float vKp = 7;
-        float vKi = 0.3;
+        float vKp = 6;
+        float vKi = 0.4;
         float vKd = 0.0;
         float vImax = 128;
         float verrorIntegral;
-        float vprev;
-        float vfilt;
+        float vprev = 0;
+        float vfilt = 0;
         float vprev_error;
         std::chrono::time_point<std::chrono::system_clock> time_ = std::chrono::system_clock::now();
         
