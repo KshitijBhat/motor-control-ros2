@@ -11,7 +11,9 @@
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
                 "-L/usr/include",
-                "-lserial"
+                "-lserial",
+                "-I/usr/include/python3.8",
+                " -lpython3.8"
             ],
             "options": {
                 "cwd": "${fileDirname}"

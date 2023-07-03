@@ -35,6 +35,13 @@ class PicoComms{
             Kd = setKd;
         }
 
+        void setVPID(double setKp, double setKi, double setKd)
+        {
+            vKp = setKp;
+            vKi = setKi;
+            vKd = setKd;
+        }
+
         void readEncoder(float &encoder_val1, float &encoder_val2)
         {
             std::string read_buffer ;
@@ -89,11 +96,11 @@ class PicoComms{
             float Command;
 
             Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
-            if (Command<70 && Command >0){
-                Command = 70;
+            if (Command<MIN_COMMAND_P && Command >0){
+                Command = MIN_COMMAND_P;
             }
-            if (Command>-70 && Command <0){
-                Command = -70;
+            if (Command>-MIN_COMMAND_P && Command <0){
+                Command = -MIN_COMMAND_P;
             }
             
             // Update prev_error
@@ -122,8 +129,8 @@ class PicoComms{
             float verrorDerivative = (verror - vprev_error);
 
             // Clamp the integrated error (start with Imax = max_duty_cycle/2)
-            if (verrorIntegral>vImax) errorIntegral=vImax;
-            if (verrorIntegral<(-vImax)) errorIntegral=-vImax;
+            if (verrorIntegral>vImax) verrorIntegral=vImax;
+            if (verrorIntegral<(-vImax)) verrorIntegral=-vImax;
 
             
             float vCommand;
@@ -160,17 +167,19 @@ class PicoComms{
             float Command;
 
             Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
-            if (Command<70 && Command >0){
-                Command = 70;
+            if (Command<MIN_COMMAND && Command >0){
+                Command = MIN_COMMAND;
             }
-            if (Command>-70 && Command <0){
-                Command = -70;
+            if (Command>-MIN_COMMAND && Command <0){
+                Command = -MIN_COMMAND;
             }
             
             // Update prev_error
             prev_error = error;
 
-            // Control Velocity ________________________________________
+
+
+            //// Control Velocity ________________________________________
 
             float velocity;
             readDrivingEncoderVelocity(velocity);
@@ -180,7 +189,7 @@ class PicoComms{
             // vfilt = 0.854*vfilt + 0.0728*velocity + 0.0728*vprev;
             vprev = velocity;
             // Compute the error encoder_s is the current position
-            float verror = targetVelocity - vfilt;
+            float verror = targetVelocity - velocity;
 
             // Integrate the error
             verrorIntegral += verror;
@@ -189,12 +198,18 @@ class PicoComms{
             float verrorDerivative = (verror - vprev_error);
 
             // Clamp the integrated error (start with Imax = max_duty_cycle/2)
-            if (verrorIntegral>vImax) errorIntegral=vImax;
-            if (verrorIntegral<(-vImax)) errorIntegral=-vImax;
+            if (verrorIntegral>vImax) verrorIntegral=vImax;
+            if (verrorIntegral<(-vImax)) verrorIntegral=-vImax;
 
             
             float vCommand;
             vCommand = vKp*verror + vKi*verrorIntegral + vKd*verrorDerivative;
+            if (vCommand<MIN_COMMAND && vCommand >0){
+                vCommand = MIN_COMMAND;
+            }
+            if (vCommand>-MIN_COMMAND && vCommand <0){
+                vCommand = -MIN_COMMAND;
+            }
             
             
             // Update prev_error
@@ -203,12 +218,13 @@ class PicoComms{
             writeMotor(int(Command), int(vCommand));
         }
 
-        int connect(const std::string &serial_device)
+        int connect(const std::string serial_device_)
         {
             try
             {
                 // Open the Serial Port at the desired hardware port.
-                serial_port_.Open(serial_device) ;
+                serial_port_.Open(serial_device_) ;
+                std::cout << "SERIAL PORT " << serial_device_ << " opened successfully!" << std::endl;
             }
             catch (const LibSerial::OpenFailed&)
             {
@@ -245,7 +261,9 @@ class PicoComms{
 
     private:
         LibSerial::SerialPort serial_port_ ;
+        std::string serial_device_ ;
         size_t ms_timeout = 10 ;
+
         // PID Params
         float Kp = 150;
         float Ki = 0.0;
@@ -254,15 +272,17 @@ class PicoComms{
         float errorIntegral;
         float prev_error;
         float pos_prev = 0;
+        float MIN_COMMAND_P = 10;
 
-        float vKp = 6;
-        float vKi = 0.4;
+        float vKp = 0.0;
+        float vKi = 0.0;
         float vKd = 0.0;
-        float vImax = 128;
+        float vImax = 12;
         float verrorIntegral;
         float vprev = 0;
         float vfilt = 0;
         float vprev_error;
+        float MIN_COMMAND = 1;
         std::chrono::time_point<std::chrono::system_clock> time_ = std::chrono::system_clock::now();
         
 };

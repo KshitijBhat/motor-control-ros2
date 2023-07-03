@@ -25,7 +25,8 @@ char receivedChars[numChars];
 
 long encoder_count_s = 0;  
 long encoder_count_d = 0;  
-PIO pio = pio0;
+PIO pio00 = pio0;
+PIO pio11 = pio1;
 uint sm1 = 0;
 uint sm2 = 1;
 
@@ -33,11 +34,11 @@ uint sm2 = 1;
 void counter()
 {   
     // counter
-    pio_sm_exec_wait_blocking(pio, sm1, pio_encode_in(pio_x, 32));
-    encoder_count_s = pio_sm_get_blocking(pio, sm1);
+    pio_sm_exec_wait_blocking(pio00, sm1, pio_encode_in(pio_x, 32));
+    encoder_count_s = pio_sm_get_blocking(pio00, sm1);
 
-    pio_sm_exec_wait_blocking(pio, sm2, pio_encode_in(pio_x, 32));
-    encoder_count_d = pio_sm_get_blocking(pio, sm2);
+    pio_sm_exec_wait_blocking(pio11, sm2, pio_encode_in(pio_x, 32));
+    encoder_count_d = pio_sm_get_blocking(pio11, sm2);
 }
 
 void command_steering_motor(int speed)
@@ -149,12 +150,14 @@ int main(){
     gpio_set_dir(IN4, GPIO_OUT);
     gpio_set_function(ENB, GPIO_FUNC_PWM);
 
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &quadrature_program);
+    PIO pio00 = pio0;
+    PIO pio11 = pio1;
+    uint offset0 = pio_add_program(pio00, &quadrature_program);
+    uint offset1 = pio_add_program(pio11, &quadrature_program);
     // uint sm1 = pio_claim_unused_sm(pio, true);
     // uint sm2 = pio_claim_unused_sm(pio, true);
-    quadrature_program_init(pio, sm1, offset, QUADRATURE1_A_PIN, QUADRATURE1_B_PIN);
-    quadrature_program_init(pio, sm2, offset, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
+    quadrature_program_init(pio00, sm1, offset0, QUADRATURE1_A_PIN, QUADRATURE1_B_PIN);
+    quadrature_program_init(pio11, sm2, offset1, QUADRATURE2_A_PIN, QUADRATURE2_B_PIN);
 
 
     int steerCommand = 0;
