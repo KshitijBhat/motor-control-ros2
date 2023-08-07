@@ -9,14 +9,7 @@
 #include <chrono>
 
 #define PI 3.1416
-
-// ENCODER_TICKS_PER_REV 660 for 100 rpm motor
-// ENCODER_TICKS_PER_REV 660*100/30 for 30 rpm motor
-// ENCODER_TICKS_PER_REV 660*100/10 for 10 rpm motor
-
-#define STEERING_ENCODER_TICKS_PER_REV 6600
-#define DRIVING_ENCODER_TICKS_PER_REV 2200
-
+#define ENCODER_TICKS_PER_REV 660
 
 class PicoComms{
     public:
@@ -42,11 +35,11 @@ class PicoComms{
             Kd = setKd;
         }
 
-        void setvPID(double setvKp, double setvKi, double setvKd)
+        void setVPID(double setKp, double setKi, double setKd)
         {
-            vKp = setvKp;
-            vKi = setvKi;
-            vKd = setvKd;
+            vKp = setKp;
+            vKi = setKi;
+            vKd = setKd;
         }
 
         void readEncoder(float &encoder_val1, float &encoder_val2)
@@ -65,8 +58,8 @@ class PicoComms{
                 std::string token_1 = read_buffer.substr(0, del_pos);
                 std::string token_2 = read_buffer.substr(del_pos + delimiter.length());
 
-                encoder_val1 = std::atoi(token_1.c_str())*2*PI/STEERING_ENCODER_TICKS_PER_REV;
-                encoder_val2 = std::atoi(token_2.c_str())*2*PI/DRIVING_ENCODER_TICKS_PER_REV;
+                encoder_val1 = std::atoi(token_1.c_str())*2*PI/ENCODER_TICKS_PER_REV;
+                encoder_val2 = std::atoi(token_2.c_str())*2*PI/ENCODER_TICKS_PER_REV;
             }
         }
 
@@ -80,17 +73,6 @@ class PicoComms{
             readEncoder(_, pos_now);
             velocity = (pos_now - pos_prev) / deltaSeconds;
             pos_prev = pos_now;
-        }
-
-        void readSteeringDriving(float &pos_steering, float &pos_driving, float &vel_driving)
-        {
-            auto new_time = std::chrono::system_clock::now();
-            std::chrono::duration<float> diff = new_time - time_;
-            float deltaSeconds = diff.count();
-            time_ = new_time;
-            readEncoder(pos_steering, pos_driving);
-            vel_driving = (pos_driving - pos_prev) / deltaSeconds;
-            pos_prev = pos_driving;
         }
 
         void controlPosition(float targetPosition)
@@ -114,17 +96,17 @@ class PicoComms{
             float Command;
 
             Command = Kp*error + Ki*errorIntegral + Kd*errorDerivative;
-            if (Command<70 && Command >0){
-                Command = 70;
+            if (Command<MIN_COMMAND_P && Command >0){
+                Command = MIN_COMMAND_P;
             }
-            if (Command>-70 && Command <0){
-                Command = -70;
+            if (Command>-MIN_COMMAND_P && Command <0){
+                Command = -MIN_COMMAND_P;
             }
             
             // Update prev_error
             prev_error = error;
 
-            std::cout << error << " "<< int(Command)<<std::endl;
+            // std::cout << error << " "<< int(Command)<<std::endl;
             writeMotor( int(Command), 0);
         }
 
@@ -134,7 +116,7 @@ class PicoComms{
             readDrivingEncoderVelocity(velocity);
 
               // Low-pass filter (25 Hz cutoff) https://github.com/curiores/ArduinoTutorials/blob/main/SpeedControl/SpeedControl/SpeedControl.ino
-            vfilt = 0.9*vfilt + 0.1*velocity;
+            vfilt = 0.8*vfilt + 0.2*velocity;
             // vfilt = 0.854*vfilt + 0.0728*velocity + 0.0728*vprev;
             vprev = velocity;
             // Compute the error encoder_s is the current position
@@ -147,8 +129,8 @@ class PicoComms{
             float verrorDerivative = (verror - vprev_error);
 
             // Clamp the integrated error (start with Imax = max_duty_cycle/2)
-            if (verrorIntegral>vImax) errorIntegral=vImax;
-            if (verrorIntegral<(-vImax)) errorIntegral=-vImax;
+            if (verrorIntegral>vImax) verrorIntegral=vImax;
+            if (verrorIntegral<(-vImax)) verrorIntegral=-vImax;
 
             
             float vCommand;
@@ -158,7 +140,7 @@ class PicoComms{
             // Update prev_error
             vprev_error = verror;
 
-            std::cout << vfilt << " "<< verror << " "<< int(vCommand)<<std::endl;
+            // std::cout << vfilt << " "<< verror << " "<< int(vCommand)<<std::endl;
             writeMotor(0, int(vCommand));
         }
 
@@ -167,10 +149,10 @@ class PicoComms{
             // Control Position ________________________________________
 
             //https://vanhunteradams.com/Pico/ReactionWheel/Tuning.html
-            float pos_s, pos_d, vel_d;
-            readSteeringDriving(pos_s, pos_d, vel_d);
+            float encoder_s, encoder_d;
+            readEncoder(encoder_s, encoder_d);
             // Compute the error encoder_s is the current position
-            float error = targetPosition - pos_s;
+            float error = targetPosition - encoder_s;
 
             // Integrate the error
             errorIntegral += error;
@@ -191,24 +173,23 @@ class PicoComms{
             if (Command>-MIN_COMMAND && Command <0){
                 Command = -MIN_COMMAND;
             }
-
-// Steering Joint Limits 
-            if (pos_s>PI || pos_s<-PI){
-                Command = 0.0;
-            }
             
             // Update prev_error
             prev_error = error;
 
-            
-            // Control Velocity ________________________________________
+
+
+            //// Control Velocity ________________________________________
+
+            float velocity;
+            readDrivingEncoderVelocity(velocity);
 
               // Low-pass filter (25 Hz cutoff) https://github.com/curiores/ArduinoTutorials/blob/main/SpeedControl/SpeedControl/SpeedControl.ino
-            vfilt = 0.5*vfilt + 0.5*vel_d;
+            vfilt = 0.95*vfilt + 0.05*velocity;
             // vfilt = 0.854*vfilt + 0.0728*velocity + 0.0728*vprev;
-            vprev = vel_d;
+            vprev = velocity;
             // Compute the error encoder_s is the current position
-            float verror = targetVelocity - vfilt;
+            float verror = targetVelocity - velocity;
 
             // Integrate the error
             verrorIntegral += verror;
@@ -222,15 +203,15 @@ class PicoComms{
 
             
             float vCommand;
-            vCommand = vKp*verror; // + vKi*verrorIntegral + vKd*verrorDerivative;
-            
-            
+            vCommand = vKp*verror + vKi*verrorIntegral + vKd*verrorDerivative;
             if (vCommand<MIN_COMMAND && vCommand >0){
                 vCommand = MIN_COMMAND;
             }
-            if (vCommand>-MIN_COMMAND && Command <0){
+            if (vCommand>-MIN_COMMAND && vCommand <0){
                 vCommand = -MIN_COMMAND;
             }
+            
+            
             // Update prev_error
             vprev_error = verror;
 
@@ -291,17 +272,17 @@ class PicoComms{
         float errorIntegral;
         float prev_error;
         float pos_prev = 0;
+        float MIN_COMMAND_P = 10;
 
-        float MIN_COMMAND = 30;
-
-        float vKp = 6;
-        float vKi = 0.0;
-        float vKd = 0.4;
-        float vImax = 128;
+        float vKp = 7.0;
+        float vKi = 0.2;
+        float vKd = 0.0;
+        float vImax = 3;
         float verrorIntegral;
         float vprev = 0;
         float vfilt = 0;
         float vprev_error;
+        float MIN_COMMAND = 1;
         std::chrono::time_point<std::chrono::system_clock> time_ = std::chrono::system_clock::now();
         
 };
